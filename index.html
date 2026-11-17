@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Inkly</title>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Playfair+Display:wght@600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fff9ee;--paper:#fbf3e0;--card:#f5edda;--card2:#efe8d5;--ink:#1f1b10;--muted:#504440;--gold:#735c00;--gold2:#fed65b;--wax:#43000a;--waxt:#ffdad9}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.55 'EB Garamond',serif}
+h1,h2,h3{font-family:'Playfair Display',serif;margin:.2em 0}
+a{color:inherit;text-decoration:none}
+header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:16px;padding:10px 20px;background:rgba(255,249,238,.92);backdrop-filter:blur(8px);box-shadow:0 1px 8px rgba(44,24,16,.08)}
+.logo{font:700 22px 'Playfair Display',serif}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav a{padding:6px 12px;border-radius:8px;font:13px 'Space Mono',monospace}
+nav a:hover{background:var(--card2)}
+nav a.on{background:var(--gold2);color:#574500}
+main{max-width:960px;margin:0 auto;padding:20px}
+button,.btn,input,textarea{font:inherit}
+button,.btn{font:13px 'Space Mono',monospace;border:0;border-radius:8px;padding:9px 14px;background:var(--card2);color:var(--ink);cursor:pointer;display:inline-block}
+button:hover,.btn:hover{background:#eae2cf}
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,.editor:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.wax{background:var(--wax);color:var(--waxt)}.wax:hover{background:#2c0006}
+button:disabled{opacity:.4;cursor:default}
+input,textarea{width:100%;padding:10px 12px;border:0;border-radius:8px;background:var(--card);color:var(--ink)}
+.row{display:flex;gap:10px;align-items:center;margin:10px 0;flex-wrap:wrap}
+.row input{flex:1;min-width:160px}
+.hero{text-align:center;padding:56px 0 32px}
+.hero h1{font-size:clamp(34px,6vw,56px);line-height:1.1}
+.hero p{max-width:520px;margin:12px auto 24px;color:var(--muted)}
+.feat{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.feat div,.card{background:var(--card);border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(44,24,16,.08)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.card{display:block}.card:hover{background:var(--card2)}
+.card small{font:11px 'Space Mono',monospace;color:var(--gold)}
+.card p{margin:.3em 0;color:var(--muted);font-size:16px}
+.card img{width:100%;border-radius:8px;background:var(--paper)}
+.tag{font:11px 'Space Mono',monospace;color:var(--gold);margin-right:8px}
+.chips{display:flex;gap:8px;margin:6px 0 16px}
+.chip.on,.tl.on,.sz.on{background:var(--gold2);color:#574500}
+.title{font:700 30px 'Playfair Display',serif;background:transparent;padding-left:0}
+.editor{min-height:320px;background:#fff;border-radius:12px;padding:20px;box-shadow:inset 0 1px 6px rgba(44,24,16,.1)}
+.ai{margin-top:12px;padding:12px 14px;border-radius:10px;background:var(--card2);display:none}
+.bar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:8px;background:var(--card2);border-radius:10px;margin:10px 0}
+.sp{flex:1}
+.ink{width:24px;height:24px;border-radius:50%;padding:0;border:2px solid transparent}.ink.on{border-color:var(--gold);transform:scale(1.15)}
+#st{position:relative;height:60vh;min-height:320px;border-radius:12px;overflow:hidden;background:var(--paper) radial-gradient(circle,rgba(115,92,0,.35) .8px,transparent 1px) 0 0/32px 32px}
+#cv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
+.drop{display:block;padding:36px;border-radius:12px;background:var(--card);text-align:center;cursor:pointer;border:2px dashed var(--gold)}
+#pv{max-width:100%;max-height:320px;border-radius:10px;margin:12px 0}
+.muted{color:var(--muted);font-size:15px}
+.msg{padding:10px 14px;border-radius:12px;margin:10px 0;max-width:85%}
+.me{background:var(--wax);color:var(--waxt);margin-left:auto}.bot{background:var(--card)}
+.empty{color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <a class="logo" href="#/">Inkly</a>
+  <nav>
+    <a href="#/library">Library</a><a href="#/draw">Draw</a><a href="#/scan">Scan</a><a href="#/ask">Ask AI</a><a href="#/settings">Settings</a>
+  </nav>
+</header>
+<main id="app"></main>
+
+<script>
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const txt=h=>{const d=document.createElement('div');d.innerHTML=h;return d.textContent};
+const uid=()=>'n'+Math.random().toString(36).slice(2,9);
+const app=$('#app');
+
+/* ---------- Data layer: swap these 2 functions for Supabase calls later ---------- */
+let notes=JSON.parse(localStorage.getItem('inkly')||'null')||[
+ {id:'n1',type:'text',title:'Draught of Living Death',body:'<p>Cut the sopophorous bean with a silver blade rather than crushing it.</p>',tags:['potions'],ts:Date.now()},
+ {id:'n2',type:'text',title:'Animagus transformation',body:'<p>Keep the wrist relaxed. Practice the flick every morning.</p>',tags:['transfiguration'],ts:Date.now()-864e5}];
+const save=()=>localStorage.setItem('inkly',JSON.stringify(notes));
+/* --------------------------------------------------------------------------------- */
+
+const V={};
+
+V.home=()=>{app.innerHTML=`
+<section class="hero"><h1>Where thought becomes magic.</h1>
+<p>Write, draw, scan photos and ask questions about your own notes, all in one place.</p>
+<a class="btn wax" href="#/library">Open my library</a></section>
+<section class="feat">
+<div><h3>Write</h3><p class="muted">A clean editor with tags and formatting.</p></div>
+<div><h3>Draw</h3><p class="muted">A sketch canvas that saves strokes as data.</p></div>
+<div><h3>Scan</h3><p class="muted">Turn photos of text into editable notes.</p></div>
+<div><h3>Ask AI</h3><p class="muted">Search across everything you wrote.</p></div>
+</section>`};
+
+V.library=()=>{
+ let f='all',q='';
+ app.innerHTML=`<div class="row"><input id="q" placeholder="Search notes" aria-label="Search notes"><button class="btn wax" id="new">New note</button></div>
+ <div class="chips">${['all','text','sketch','scan'].map(t=>`<button class="chip${t=='all'?' on':''}" data-t="${t}">${t}</button>`).join('')}</div><div id="g" class="grid"></div>`;
+ const draw=()=>{
+  const l=notes.filter(n=>(f=='all'||n.type==f)&&txt(n.title+' '+n.body).toLowerCase().includes(q)).sort((a,b)=>b.ts-a.ts);
+  $('#g').innerHTML=l.length?l.map(n=>`<a class="card" href="#/${n.type=='sketch'?'draw':'note'}/${n.id}"><small>${n.type}</small><h3>${esc(n.title||'Untitled')}</h3>${n.thumb?`<img src="${n.thumb}" alt="Sketch preview">`:`<p>${esc(txt(n.body).slice(0,140))}</p>`}<div>${n.tags.map(t=>`<span class="tag">#${esc(t)}</span>`).join('')}</div></a>`).join(''):'<p class="empty">Nothing here yet. Create a note, sketch or scan.</p>';
+ };
+ $('#q').oninput=e=>{q=e.target.value.toLowerCase();draw()};
+ document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{document.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));b.classList.add('on');f=b.dataset.t;draw()});
+ $('#new').onclick=()=>{const n={id:uid(),type:'text',title:'',body:'',tags:[],ts:Date.now()};notes.push(n);save();location.hash='#/note/'+n.id};
+ draw();
+};
+
+V.note=id=>{
+ const n=notes.find(x=>x.id==id); if(!n){location.hash='#/library';return}
+ app.innerHTML=`<input id="t" class="title" placeholder="Untitled" aria-label="Title" value="${esc(n.title)}">
+ <div class="row"><input id="tg" placeholder="Tags, comma separated" aria-label="Tags" value="${esc(n.tags.join(', '))}"></div>
+ <div class="bar"><button data-c="bold"><b>B</b></button><button data-c="italic"><i>I</i></button><button data-c="strikeThrough"><s>S</s></button><button data-c="insertUnorderedList">List</button></div>
+ <div id="b" class="editor" contenteditable="true" aria-label="Note body">${n.body}</div>
+ <div class="row"><button id="sum">Summarize</button><button id="ttl">Suggest title</button><button id="del">Delete note</button></div>
+ <div id="ai" class="ai"></div>`;
+ const persist=()=>{n.title=$('#t').value;n.body=$('#b').innerHTML;n.tags=$('#tg').value.split(',').map(s=>s.trim()).filter(Boolean);n.ts=Date.now();save()};
+ ['#t','#b','#tg'].forEach(s=>$(s).addEventListener('input',persist));
+ document.querySelectorAll('[data-c]').forEach(b=>b.onmousedown=e=>{e.preventDefault();document.execCommand(b.dataset.c)});
+ const show=m=>{const a=$('#ai');a.style.display='block';a.textContent=m};
+ /* Placeholder AI: replace with fetch('/api/ai/summarize') to YOUR backend (keep the API key server-side) */
+ $('#sum').onclick=()=>{const s=txt($('#b').innerHTML).match(/[^.!?]+[.!?]/g)||[];show(s.length?s.slice(0,2).join(' ').trim():'Write something first.')};
+ $('#ttl').onclick=()=>{const w=txt($('#b').innerHTML).trim().split(/\s+/).slice(0,6).join(' ');if(w){$('#t').value=w;persist();show('Title updated.')}else show('Write something first.')};
+ $('#del').onclick=()=>{if(confirm('Delete this note?')){notes=notes.filter(x=>x.id!=id);save();location.hash='#/library'}};
+};
+
+V.draw=id=>{
+ const n=id&&notes.find(x=>x.id==id);
+ let S=n&&n.strokes?JSON.parse(JSON.stringify(n.strokes)):[],R=[],cur=null,tool='pen',col='#1f1b10',sz=4;
+ app.innerHTML=`<div class="row"><input id="dt" placeholder="Sketch title" aria-label="Sketch title" value="${esc(n?n.title:'')}"><button class="btn wax" id="ds">Save sketch</button></div>
+ <div class="bar"><button id="u">Undo</button><button id="r">Redo</button><button id="cl">Clear</button><span class="sp"></span>
+ ${[['pen','Pen'],['marker','Marker'],['glow','Glow'],['eraser','Eraser']].map(([t,l])=>`<button class="tl${t=='pen'?' on':''}" data-t="${t}">${l}</button>`).join('')}
+ ${['#1f1b10','#721c24','#e9c349','#1a3d2f','#1c385c'].map(c=>`<button class="ink${c=='#1f1b10'?' on':''}" data-c="${c}" style="background:${c}" aria-label="Ink ${c}"></button>`).join('')}
+ <input type="range" id="sz" min="1" max="16" value="4" style="width:90px" aria-label="Brush size"></div>
+ <div id="st"><canvas id="cv"></canvas></div>`;
+ const st=$('#st'),cv=$('#cv'),x=cv.getContext('2d');
+ const one=s=>{const p=s.points;if(!p.length)return;x.save();x.lineCap='round';x.lineJoin='round';
+  x.lineWidth=s.tool=='marker'?s.size*2.2:s.tool=='eraser'?s.size*5:s.size;
+  if(s.tool=='eraser'){x.globalCompositeOperation='destination-out'}
+  else if(s.tool=='glow'){x.strokeStyle='#fed65b';x.shadowBlur=10;x.shadowColor='#fed65b'}
+  else x.strokeStyle=s.color;
+  x.beginPath();x.moveTo(p[0][0],p[0][1]);if(p.length==1)x.lineTo(p[0][0]+.01,p[0][1]);
+  for(let i=1;i<p.length-1;i++)x.quadraticCurveTo(p[i][0],p[i][1],(p[i][0]+p[i+1][0])/2,(p[i][1]+p[i+1][1])/2);
+  if(p.length>1)x.lineTo(p[p.length-1][0],p[p.length-1][1]);x.stroke();x.restore()};
+ const paint=()=>{x.clearRect(0,0,st.clientWidth,st.clientHeight);S.forEach(one);if(cur)one(cur);$('#u').disabled=!S.length;$('#r').disabled=!R.length};
+ const fit=()=>{const d=devicePixelRatio||1;cv.width=st.clientWidth*d;cv.height=st.clientHeight*d;x.setTransform(d,0,0,d,0,0);paint()};
+ new ResizeObserver(fit).observe(st);
+ const pt=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]};
+ cv.onpointerdown=e=>{cv.setPointerCapture(e.pointerId);cur={tool,color:col,size:sz,points:[pt(e)]};paint()};
+ cv.onpointermove=e=>{if(!cur)return;cur.points.push(pt(e));paint()};
+ cv.onpointerup=cv.onpointercancel=()=>{if(cur){S.push(cur);cur=null;R=[];paint()}};
+ $('#u').onclick=()=>{if(S.length){R.push(S.pop());paint()}};
+ $('#r').onclick=()=>{if(R.length){S.push(R.pop());paint()}};
+ $('#cl').onclick=()=>{S=[];R=[];paint()};
+ document.querySelectorAll('.tl').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tl').forEach(y=>y.classList.remove('on'));b.classList.add('on');tool=b.dataset.t});
+ document.querySelectorAll('.ink').forEach(b=>b.onclick=()=>{document.querySelectorAll('.ink').forEach(y=>y.classList.remove('on'));b.classList.add('on');col=b.dataset.c});
+ $('#sz').oninput=e=>sz=+e.target.value;
+ $('#ds').onclick=()=>{
+  const o=document.createElement('canvas');o.width=400;o.height=Math.round(400*cv.height/cv.width);
+  const c=o.getContext('2d');c.fillStyle='#fbf3e0';c.fillRect(0,0,o.width,o.height);c.drawImage(cv,0,0,o.width,o.height);
+  const data={type:'sketch',title:$('#dt').value||'Untitled sketch',body:'',tags:n?n.tags:[],strokes:S,thumb:o.toDataURL('image/jpeg',.7),ts:Date.now()};
+  if(n)Object.assign(n,data);else notes.push({id:uid(),...data});
+  save();location.hash='#/library';
+ };
+};
+
+V.scan=()=>{
+ let file=null;
+ app.innerHTML=`<label class="drop" for="f">Take a photo or upload an image</label>
+ <input id="f" type="file" accept="image/*" capture="environment" hidden>
+ <img id="pv" alt="Selected photo" hidden>
+ <div class="row"><button id="ocr" disabled>Extract text</button><span id="s" class="muted"></span></div>
+ <textarea id="ot" rows="8" placeholder="Extracted text appears here" aria-label="Extracted text"></textarea>
+ <div class="row"><button class="btn wax" id="so" disabled>Save as note</button></div>`;
+ $('#f').onchange=e=>{file=e.target.files[0];if(!file)return;$('#pv').src=URL.createObjectURL(file);$('#pv').hidden=false;$('#ocr').disabled=false};
+ const lib=()=>new Promise((ok,no)=>{if(window.Tesseract)return ok();const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';s.onload=ok;s.onerror=no;document.head.appendChild(s)});
+ $('#ocr').onclick=async()=>{
+  $('#s').textContent='Loading text reader...';
+  try{await lib();const r=await Tesseract.recognize(file,'eng',{logger:m=>{if(m.status=='recognizing text')$('#s').textContent='Reading... '+Math.round(m.progress*100)+'%'}});
+   $('#ot').value=r.data.text.trim();$('#s').textContent='Done. Edit the text if needed.';$('#so').disabled=!$('#ot').value}
+  catch{$('#s').textContent='Could not load the text reader. Check your connection.'}
+ };
+ $('#ot').oninput=e=>$('#so').disabled=!e.target.value.trim();
+ $('#so').onclick=()=>{const t=$('#ot').value.trim();notes.push({id:uid(),type:'scan',title:t.split('\n')[0].slice(0,60)||'Scanned note',body:'<p>'+esc(t).replace(/\n/g,'<br>')+'</p>',tags:['scan'],ts:Date.now()});save();location.hash='#/library'};
+};
+
+V.ask=()=>{
+ app.innerHTML=`<h2>Ask your notes</h2><p class="muted">Demo uses keyword matching. Connect it to an embeddings search on your backend for real answers.</p>
+ <div id="log"></div><form class="row" id="fm"><input id="qq" placeholder="What did I write about potions?" aria-label="Question"><button class="btn wax">Ask</button></form>`;
+ $('#fm').onsubmit=e=>{
+  e.preventDefault();const q=$('#qq').value.trim();if(!q)return;$('#qq').value='';
+  const w=q.toLowerCase().split(/\W+/).filter(s=>s.length>3);
+  const hits=notes.map(n=>({n,s:w.filter(k=>txt(n.title+' '+n.body+' '+n.tags.join(' ')).toLowerCase().includes(k)).length})).filter(h=>h.s).sort((a,b)=>b.s-a.s).slice(0,3);
+  const log=$('#log');
+  log.insertAdjacentHTML('beforeend',`<div class="msg me">${esc(q)}</div>`);
+  log.insertAdjacentHTML('beforeend',`<div class="msg bot">${hits.length?'I found '+hits.length+' related note'+(hits.length>1?'s':'')+':<br>'+hits.map(h=>`<a class="tag" href="#/${h.n.type=='sketch'?'draw':'note'}/${h.n.id}">${esc(h.n.title||'Untitled')}</a>`).join(' '):'I could not find anything about that in your notes.'}</div>`);
+ };
+};
+
+V.settings=()=>{
+ app.innerHTML=`<h2>Settings</h2><p class="muted">${notes.length} notes stored in this browser.</p>
+ <div class="row"><button id="ex">Export all notes (JSON)</button><button id="rs">Delete everything</button></div>`;
+ $('#ex').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(notes,null,2)],{type:'application/json'}));a.download='inkly-notes.json';a.click()};
+ $('#rs').onclick=()=>{if(confirm('Delete all notes? This cannot be undone.')){notes=[];save();V.settings()}};
+};
+
+const go=()=>{
+ const[p,a]=location.hash.slice(2).split('/');
+ document.querySelectorAll('nav a').forEach(l=>l.classList.toggle('on',l.getAttribute('href')=='#/'+p));
+ (V[p||'home']||V.home)(a);window.scrollTo(0,0);
+};
+addEventListener('hashchange',go);go();
+</script>
+</body>
+</html>
